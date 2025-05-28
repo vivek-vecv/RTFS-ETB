@@ -278,7 +278,7 @@ const FVIDashboard4 = (props) => {
                                                                     {item.SHIFT}
                                                                 </span>
                                                                 <span className="f-right">
-                                                                    {item.AUDIT_DATE}
+                                                                    {item.AUDIT_DATE && item.AUDIT_DATE.substring(0, 16)}
                                                                 </span>
                                                             </p>
 

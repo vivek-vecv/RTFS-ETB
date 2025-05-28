@@ -5,16 +5,14 @@ import {
   CModalBody,
   CModalFooter,
   CButton,
-  CInput,
   CLabel,
   CTextarea,
   CAlert,
 } from "@coreui/react";
 
-import Autocomplete from "react-autocomplete";
+import Select from "react-select";
 import axios from "axios";
 import { API_URL } from "../../config";
-import FVIDashboard4 from "./FVIDashboard4";
 
 const Modal = ({
   open,
@@ -24,26 +22,15 @@ const Modal = ({
   defectCode,
   ack,
   stn,
-  stnChng,
-
-
-  ...props
 }) => {
-
-
   const [supData, setSupData] = useState([]);
-
   const [empName, setEmpName] = useState("");
   const [alertFail, setAlertFail] = useState(false);
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [empId, setEmpId] = useState("");
   const [chassi, setChassi] = useState("");
-  const [actionTaken, setActionTaken] = useState(null);
+  const [actionTaken, setActionTaken] = useState("");
   const [msg, setMsg] = useState("");
-  const params = {
-    Logged_Station: stn,
-
-  };
 
   const toggle = () => {
     setOpen(!open);
@@ -53,52 +40,26 @@ const Modal = ({
     setEmpName("");
     setActionTaken("");
   };
+
   useEffect(() => {
     axios
       .get(`${API_URL}/supervisorData.php`)
-      .then(function (response) {
-        let data = response?.data?.EMPLOYEE;
-        setSupData(function (subData) {
-          for (let i = 0; i < data.length; i++) {
-            supData.push({
-              name: data[i].EMPLOYEE_NAME,
-              id: data[i].EMPLOYEE_ID,
-            });
-          }
-
-
-          return supData;
-
-        });
+      .then((response) => {
+        const data = response?.data?.EMPLOYEE || [];
+        setSupData(
+          data.map((emp) => ({
+            label: emp.EMPLOYEE_NAME,
+            value: emp.EMPLOYEE_ID,
+          }))
+        );
       })
-      .catch(function (error) {
+      .catch((error) => {
         console.log(error);
       });
   }, []);
 
-
-
-
-
-
-
-  function handleNameChange(val) {
-    if (val) {
-      for (let i = 0; i < supData.length; i++) {
-        if (supData[i].name === val) {
-          setEmpId(supData[i].id);
-          break;
-        }
-      }
-    } else {
-      console.log("else case");
-      setEmpName("");
-      setEmpId("");
-    }
-  }
-
-  function submitForm() {
-    var payload = {
+  const submitForm = () => {
+    const payload = {
       supName: empName,
       supID: empId,
       supAction: actionTaken,
@@ -107,10 +68,10 @@ const Modal = ({
       defectCode: defectCode,
     };
 
-    if (empName !== "" && actionTaken !== null && actionTaken !== "") {
+    if (empName && actionTaken) {
       axios
         .post(`${API_URL}/submitDataSupervisor.php`, payload)
-        .then(function (response) {
+        .then((response) => {
           console.log("response", response);
           setChassi(chassis);
           setEmpId("");
@@ -118,11 +79,8 @@ const Modal = ({
           setActionTaken("");
           setAlertSuccess(true);
           setAlertFail(false);
-
           setMsg("Data Submission Successful");
-
-
-          setOpen(!open);
+          setOpen(false);
         })
         .catch((e) => {
           setAlertFail(true);
@@ -133,83 +91,61 @@ const Modal = ({
       setAlertFail(true);
       setAlertSuccess(false);
       setMsg("Fields can not be empty");
-      //setOpen(!open);
     }
-  }
+  };
 
   return (
     <>
-      <CModal show={open} size="lg" onclose={toggle} closeOnBackdrop={false}>
+      <CModal show={open} size="lg" onClose={toggle} closeOnBackdrop={false}>
         <CModalHeader
-          style={{
-            fontWeight: "bold",
-            fontFamily: "Helvetica",
-          }}
+          style={{ fontWeight: "bold", fontFamily: "Helvetica" }}
           align="center"
         >
           Supervisor Acknowledgement Window
         </CModalHeader>
         <CModalBody>
           <CLabel style={{ fontWeight: "bold" }}>Chassis Number</CLabel>
-          <input className="form-control" value={chassis} />
+          <input className="form-control" value={chassis} disabled />
+
           <CLabel style={{ fontWeight: "bold" }}>
             Supervisor Name<span style={{ color: "red" }}>*</span>
           </CLabel>
-          <Autocomplete
-            getItemValue={(item) => item.name}
-            items={supData}
-            renderItem={(item, isHighlighted) => (
-              <div
-                style={{ background: isHighlighted ? "lightgray" : "white" }}
-              >
-                {item.name}
-              </div>
-            )}
-            value={empName}
-            onChange={(e) => {
-              setEmpName(e.target.value);
-              handleNameChange(e.target.value);
+          <Select
+            options={supData}
+            value={empName && empId ? { label: empName, value: empId } : null}
+            onChange={(selected) => {
+              setEmpName(selected.label);
+              setEmpId(selected.value);
             }}
-            shouldItemRender={(item, value) =>
-              item.name.toLowerCase().indexOf(value.toLowerCase()) > -1
-            }
-            onSelect={(val) => {
-              setEmpName(val);
-              handleNameChange(val);
-            }}
-            renderInput={function (props) {
-              return <input className="form-control" {...props} />;
-            }}
-            wrapperStyle={{ display: "block" }}
+            placeholder="Select Supervisor"
+            isSearchable
+            className="mb-2"
           />
+
           <CLabel style={{ fontWeight: "bold" }}>
             Employee ID<span style={{ color: "red" }}>*</span>
           </CLabel>
-          <input className="form-control" value={empId} disabled={true} />
+          <input className="form-control" value={empId} disabled />
+
           <CLabel style={{ fontWeight: "bold" }}>Defect Description</CLabel>
-          <input className="form-control" value={desc} />
+          <input className="form-control" value={desc} disabled />
+
           <CLabel style={{ fontWeight: "bold" }}>Defect Code</CLabel>
-          <input className="form-control" value={defectCode} />
+          <input className="form-control" value={defectCode} disabled />
+
           <CLabel style={{ fontWeight: "bold" }}>
             Action Taken<span style={{ color: "red" }}>*</span>
           </CLabel>
           <CTextarea
-            type="text-area"
-            name="nf-email"
             placeholder="Enter Action Taken by Supervisor"
             value={actionTaken}
             onChange={(e) => setActionTaken(e.target.value)}
           />
-          <CLabel style={{ fontWeight: "bold" }}>
-            Previous Acknowledgement<span style={{ color: "red" }}></span>
-          </CLabel>
-          <CTextarea
-            type="text-area"
-            name="nf-email"
 
-            value={ack}
-            disabled={true}
-          />
+          <CLabel style={{ fontWeight: "bold" }}>
+            Previous Acknowledgement
+          </CLabel>
+          <CTextarea value={ack} disabled />
 
           <CAlert
             show={alertSuccess}
@@ -231,8 +167,8 @@ const Modal = ({
           </CButton>
         </CModalFooter>
       </CModal>
-
     </>
   );
 };
+
 export default Modal;
